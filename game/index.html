@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Starlight Salvage</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: #05081a;
+    overflow: hidden;
+  }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  #wrap {
+    position: relative;
+    width: min(100vw, 177.78vh);
+    height: min(100vh, 56.25vw);
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: #0b1030;
+    cursor: crosshair;
+  }
+  #hint {
+    position: absolute;
+    left: 10px;
+    bottom: 8px;
+    color: rgba(226, 232, 240, 0.55);
+    font-size: 12px;
+    pointer-events: none;
+    user-select: none;
+  }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game" width="1280" height="720"></canvas>
+  <div id="hint">WASD fly &middot; mouse aim &middot; click / space fire &middot; P pause &middot; M mute</div>
+</div>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>

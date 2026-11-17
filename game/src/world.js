@@ -156,7 +156,7 @@ export function spawnPickup(state, kind) {
     vx: pickRng(rng, -10, 10),
     vy: pickRng(rng, -8, 8),
     r: 14,
-    kind, // 'shield' | 'overdrive'
+    kind, // 'shield' | 'overdrive' | 'magnet' | 'nova'
     phase: rng() * Math.PI * 2,
   });
 }
@@ -185,12 +185,23 @@ export function updateWorld(state, dt, audio) {
     for (let i = 0; i < 5; i++) spawnShard(state);
     spawnVault(state);
     if (state.wave % 3 === 0) {
+      // Comet storm: the sky falls for eight seconds.
+      state.waveType = 'COMET STORM';
       state.stormWarnTimer = 2.0;
       showMessage(state, 'COMET STORM INCOMING', 2.0);
       audio.storm();
+    } else if (state.wave % 3 === 1) {
+      // Mine surge: a wall of mines floods in at once — shoot or weave.
+      state.waveType = 'MINE SURGE';
+      for (let i = 0; i < 8; i++) spawnMine(state, state.rng() < 0.2);
+      showMessage(state, 'MINE SURGE!', 1.8);
+      audio.waveClear();
     } else {
-      showMessage(state, 'WAVE ' + state.wave, 1.6);
-      if (state.wave % 2 === 0) audio.waveClear();
+      // Shard shower: a burst of shards rains across the field — chase the chain.
+      state.waveType = 'SHARD SHOWER';
+      for (let i = 0; i < 10; i++) spawnShard(state);
+      showMessage(state, 'SHARD SHOWER!', 1.8);
+      audio.waveClear();
     }
   }
 

@@ -22,6 +22,7 @@ export function createState(seed) {
     lives: 3,
     wave: 1,
     waveTimer: 0,
+    waveType: 'SALVAGE',
     shardsCollected: 0,
     minesDestroyed: 0,
     storm: false,

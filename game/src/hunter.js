@@ -11,6 +11,14 @@ const BASE_SPEED = 150;
 const SPEED_PER_WAVE = 9;
 const MAX_SPEED = 245;
 const TURN_RATE = 2.6;
+// Lunge wind-up: a seeker that closes in must telegraph for 0.4 s before
+// it shoots forward, so the lunge is always dodgeable — and it bites
+// harder as the waves climb.
+const LUNGE_RANGE = 260;
+const LUNGE_WINDUP = 0.4;
+const LUNGE_BASE = 1.15;
+const LUNGE_PER_WAVE = 0.03;
+const LUNGE_MAX_WAVE = 8;
 
 export function createHunter(state, x, y) {
   const speed = Math.min(BASE_SPEED + state.wave * SPEED_PER_WAVE, MAX_SPEED);
@@ -23,10 +31,13 @@ export function createHunter(state, x, y) {
     wobble: state.rng() * Math.PI * 2,
     rot: 0,
     pulse: 0,
+    lungeT: 0,
   };
 }
 
 // Steer toward the skiff, capped turn rate, sine wobble on the heading.
+// Inside lunge range the drone winds up for LUNGE_WINDUP seconds (the ring
+// in drawHunter shows it), then shoots in at a wave-scaled speed.
 export function updateHunters(state, dt) {
   const p = state.player;
   if (!p) return;
@@ -36,7 +47,13 @@ export function updateHunters(state, dt) {
     const turn = clamp(diff, -TURN_RATE * dt, TURN_RATE * dt);
     h.angle += turn;
     h.wobble += dt * 3.1;
-    const lunge = Math.hypot(p.x - h.x, p.y - h.y) < 260 ? 1.25 : 1;
+    if (Math.hypot(p.x - h.x, p.y - h.y) < LUNGE_RANGE) {
+      h.lungeT = (h.lungeT || 0) + dt;
+    } else {
+      h.lungeT = 0;
+    }
+    const lungeMax = LUNGE_BASE + Math.min(state.wave, LUNGE_MAX_WAVE) * LUNGE_PER_WAVE;
+    const lunge = h.lungeT > LUNGE_WINDUP ? lungeMax : 1;
     const wob = Math.sin(h.wobble) * 0.35;
     h.x += Math.cos(h.angle + wob) * h.speed * lunge * dt;
     h.y += Math.sin(h.angle + wob) * h.speed * lunge * dt;
@@ -79,6 +96,19 @@ export function drawHunter(ctx, h, time) {
   ctx.arc(6, 0, 3.4, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
+  // Lunge wind-up: while the drone is winding up, a pulsing red ring warns
+  // the skiff before it shoots in.
+  const lt = h.lungeT || 0;
+  if (lt > 0 && lt <= 0.4) {
+    ctx.save();
+    ctx.globalAlpha = 0.45 + Math.sin(h.pulse * 3) * 0.25;
+    ctx.strokeStyle = '#ef4444';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(h.x, h.y, 22 + Math.sin(h.pulse * 3) * 3, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
   // Damaged hunters spark: one hit left is visible from across the field.
   if (h.hp === 1) {
     ctx.save();

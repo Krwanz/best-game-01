@@ -53,6 +53,7 @@ function startGame() {
   state.lives = 3;
   state.wave = 1;
   state.waveTimer = 0;
+  state.waveType = 'SALVAGE';
   state.shardsCollected = 0;
   state.minesDestroyed = 0;
   state.storm = false;
@@ -193,13 +194,15 @@ function arrangeShot(kind) {
   if (kind === 'title') return; // title is the boot screen already
   startGame();
   if (kind === 'play') {
-    // A busy mid-game moment: combo already running, mines in view.
+    // A busy mid-game moment: combo already running, mines in view, and the
+    // wave-5 shard shower theme showing under the wave number.
     state.score = 2450;
     state.combo = 5;
     state.comboTimer = 2.95;
     state.shardsCollected = 23;
     state.minesDestroyed = 6;
-    state.wave = 2;
+    state.wave = 5;
+    state.waveType = 'SHARD SHOWER';
     state.player.x = 560;
     state.player.y = 400;
     state.player.vx = 120;
@@ -207,6 +210,8 @@ function arrangeShot(kind) {
     spawnMine(state, true);
     for (let i = 0; i < 5; i++) spawnShard(state);
     spawnPickup(state, 'shield');
+    // A nova pickup, placed where it reads in the frame.
+    state.pickups.push({ x: 920, y: 200, vx: 0, vy: 0, r: 14, kind: 'nova', phase: 0 });
     spawnVault(state);
     state.hunters.push(createHunter(state, 1000, 120));
     // A few seconds of live play so bolts and particles are mid-flight.
@@ -241,6 +246,7 @@ function arrangeShot(kind) {
     state.shardsCollected = 61;
     state.minesDestroyed = 18;
     state.wave = 3;
+    state.waveType = 'COMET STORM';
     state.player.x = 640;
     state.player.y = 430;
     state.player.invuln = 999; // the screenshot staging must not cost a life

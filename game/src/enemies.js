@@ -94,7 +94,7 @@ export function updateEnemies(state, dt, audio, spawnParticles, addText, onGameO
           // One in eight mines drops a pickup.
           if (state.rng() < 0.12) {
             const roll = state.rng();
-            spawnPickup(state, roll < 0.34 ? 'shield' : roll < 0.67 ? 'overdrive' : 'magnet');
+            spawnPickup(state, roll < 0.28 ? 'shield' : roll < 0.52 ? 'overdrive' : roll < 0.76 ? 'magnet' : 'nova');
           }
         }
         break;
@@ -218,9 +218,37 @@ export function updateEnemies(state, dt, audio, spawnParticles, addText, onGameO
     const pk = state.pickups[i];
     const rr = pk.r + p.r;
     if (dist2(pk.x, pk.y, p.x, p.y) < rr * rr) {
-      applyPickup(state, pk.kind, audio);
-      addText(pk.x, pk.y - 12, pk.kind === 'shield' ? 'SHIELD UP' : 'OVERDRIVE', '#2dd4bf');
-      spawnParticles('spark', pk.x, pk.y, 0, 0, '#2dd4bf');
+      if (pk.kind === 'nova') {
+        // Nova: every mine and hunter on the field detonates at once, and
+        // each one still pays its points. The flash is the point.
+        let cleared = 0;
+        for (let j = state.mines.length - 1; j >= 0; j--) {
+          const m = state.mines[j];
+          spawnParticles('burst', m.x, m.y, 0, 0, '#f59e0b');
+          addScore(state, m.heavy ? 250 : 100);
+          state.minesDestroyed += 1;
+          removeAt(state.mines, j);
+          cleared++;
+        }
+        for (let j = state.hunters.length - 1; j >= 0; j--) {
+          const h = state.hunters[j];
+          spawnParticles('burst', h.x, h.y, 0, 0, '#ef4444');
+          addScore(state, 200);
+          removeAt(state.hunters, j);
+          cleared++;
+        }
+        state.flash = 0.3;
+        state.shake = Math.max(state.shake, 12);
+        showMessage(state, 'NOVA!  ' + cleared + ' CLEARED', 1.6);
+        audio.explosion(true);
+        addText(pk.x, pk.y - 12, 'NOVA!', '#fbbf24');
+        spawnParticles('burst', pk.x, pk.y, 0, 0, '#fbbf24');
+      } else {
+        applyPickup(state, pk.kind, audio);
+        const label = pk.kind === 'shield' ? 'SHIELD UP' : pk.kind === 'magnet' ? 'MAGNET!' : 'OVERDRIVE';
+        addText(pk.x, pk.y - 12, label, '#2dd4bf');
+        spawnParticles('spark', pk.x, pk.y, 0, 0, '#2dd4bf');
+      }
       removeAt(state.pickups, i);
     }
   }
@@ -325,9 +353,9 @@ export function drawPickup(ctx, pk) {
   ctx.translate(pk.x, pk.y);
   const bob = Math.sin(pk.phase) * 2;
   ctx.translate(0, bob);
-  ctx.shadowColor = '#2dd4bf';
+  ctx.shadowColor = pk.kind === 'nova' ? '#f59e0b' : '#2dd4bf';
   ctx.shadowBlur = 12;
-  ctx.fillStyle = pk.kind === 'shield' ? '#0d9488' : pk.kind === 'magnet' ? '#7c3aed' : '#db2777';
+  ctx.fillStyle = pk.kind === 'shield' ? '#0d9488' : pk.kind === 'magnet' ? '#7c3aed' : pk.kind === 'nova' ? '#b45309' : '#db2777';
   ctx.beginPath();
   ctx.arc(0, 0, pk.r, 0, Math.PI * 2);
   ctx.fill();
@@ -339,7 +367,7 @@ export function drawPickup(ctx, pk) {
   ctx.font = 'bold 13px system-ui, sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(pk.kind === 'shield' ? 'S' : pk.kind === 'magnet' ? 'M' : 'O', 0, 1);
+  ctx.fillText(pk.kind === 'shield' ? 'S' : pk.kind === 'magnet' ? 'M' : pk.kind === 'nova' ? 'N' : 'O', 0, 1);
   ctx.restore();
 }
 

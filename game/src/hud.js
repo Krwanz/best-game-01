@@ -103,7 +103,7 @@ export function drawHud(ctx, state) {
     ctx.fillText('COMBO x' + state.combo, 20, 70);
     bar(ctx, 20, 98, 120, 8, state.comboTimer / COMBO_WINDOW, '#ffb347');
   }
-  // Wave and shards, top centre.
+  // Wave and shards, top centre — with the wave's theme underneath.
   ctx.textAlign = 'center';
   ctx.fillStyle = '#e0e7ff';
   ctx.font = 'bold 18px system-ui, sans-serif';
@@ -111,6 +111,10 @@ export function drawHud(ctx, state) {
   ctx.fillStyle = '#94a3b8';
   ctx.font = '13px system-ui, sans-serif';
   ctx.fillText('SHARDS ' + state.shardsCollected + '   MINES DOWN ' + state.minesDestroyed, WORLD_W / 2, 40);
+  const typeColor = state.waveType === 'COMET STORM' ? '#fb923c' : state.waveType === 'MINE SURGE' ? '#f87171' : state.waveType === 'SHARD SHOWER' ? '#fbbf24' : '#94a3b8';
+  ctx.fillStyle = typeColor;
+  ctx.font = 'bold 12px system-ui, sans-serif';
+  ctx.fillText(state.waveType || 'SALVAGE', WORLD_W / 2, 62);
   // Lives, top right: little skiffs.
   ctx.textAlign = 'right';
   ctx.fillStyle = '#f8fafc';
@@ -202,7 +206,8 @@ export function drawTitle(ctx, state) {
   ctx.fillStyle = '#cbd5e1';
   ctx.font = '17px system-ui, sans-serif';
   ctx.fillText('Pilot a salvage skiff through the drifting field. Sweep up star-shards,', WORLD_W / 2, 348);
-  ctx.fillText('chain them into combos, crack the vaults, dodge the seekers — and outrun the storms.', WORLD_W / 2, 372);
+  ctx.fillText('chain them into combos, crack the vaults, dodge the seekers — and ride out', WORLD_W / 2, 372);
+  ctx.fillText('comet storms, mine surges and shard showers, wave after wave.', WORLD_W / 2, 396);
   ctx.fillStyle = '#e0e7ff';
   ctx.font = 'bold 16px system-ui, sans-serif';
   ctx.fillText('WASD / ARROWS — fly      MOUSE — aim      CLICK / SPACE — fire', WORLD_W / 2, 420);

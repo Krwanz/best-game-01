@@ -2,7 +2,8 @@
 // flow, and the debug handle the play-tests and screenshots drive.
 
 import { WORLD_W, WORLD_H, createState, showMessage } from './state.js';
-import { buildBackdrop, updateWorld, spawnShard, spawnMine, spawnPickup } from './world.js';
+import { buildBackdrop, updateWorld, spawnShard, spawnMine, spawnPickup, spawnVault } from './world.js';
+import { createHunter } from './hunter.js';
 import { createPlayer, resetPlayer, updatePlayer, drawPlayer } from './player.js';
 import { updateEnemies } from './enemies.js';
 import { createParticles, createFloatTexts } from './particles.js';
@@ -60,6 +61,7 @@ function startGame() {
   state.bolts = [];
   state.shards = [];
   state.mines = [];
+  state.hunters = [];
   state.comets = [];
   state.pickups = [];
   state.newBest = false;
@@ -67,6 +69,7 @@ function startGame() {
   resetPlayer(state.player);
   for (let i = 0; i < 8; i++) spawnShard(state);
   for (let i = 0; i < 4; i++) spawnMine(state, false);
+  spawnVault(state);
   showMessage(state, 'WAVE 1 — SALVAGE!', 2.0);
 }
 
@@ -204,8 +207,30 @@ function arrangeShot(kind) {
     spawnMine(state, true);
     for (let i = 0; i < 5; i++) spawnShard(state);
     spawnPickup(state, 'shield');
+    spawnVault(state);
+    state.hunters.push(createHunter(state, 1000, 120));
     // A few seconds of live play so bolts and particles are mid-flight.
     for (let i = 0; i < 120; i++) step(STEP);
+    // Re-assert the combo for the frame: live frames keep running after the
+    // staging, and a drifting mine could otherwise break the chain before
+    // the screenshot lands. Clear hazards near the skiff, too.
+    state.combo = 5;
+    state.comboTimer = 2.95;
+    // The staged hunter has spent two seconds chasing the skiff: park it
+    // back out in the open so it shows in the frame without ramming the
+    // player before the screenshot lands.
+    if (state.hunters.length > 0) {
+      state.hunters[0].x = 1000;
+      state.hunters[0].y = 120;
+    }
+    for (let i = state.mines.length - 1; i >= 0; i--) {
+      const m = state.mines[i];
+      if (Math.hypot(m.x - state.player.x, m.y - state.player.y) < 200) state.mines.splice(i, 1);
+    }
+    for (let i = state.asteroids.length - 1; i >= 0; i--) {
+      const a = state.asteroids[i];
+      if (Math.hypot(a.x - state.player.x, a.y - state.player.y) < 200) state.asteroids.splice(i, 1);
+    }
     // Two bolts mid-flight, fired toward the nearest mine.
     state.bolts.push({ x: state.player.x + 90, y: state.player.y - 30, vx: 700, vy: -160, r: 4, life: 0.8 });
     state.bolts.push({ x: state.player.x + 60, y: state.player.y + 10, vx: 720, vy: -40, r: 4, life: 0.8 });

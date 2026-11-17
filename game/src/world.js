@@ -3,6 +3,7 @@
 
 import { WORLD_W, WORLD_H, WAVE_SECONDS, showMessage } from './state.js';
 import { pickRng, pickInt } from './util.js';
+import { createHunter } from './hunter.js';
 
 export function buildBackdrop(state) {
   const rng = state.rng;
@@ -110,6 +111,43 @@ export function spawnComet(state) {
   });
 }
 
+// A vault shard: one big prize, ringed by mines, worth 500. The risk is
+// the point — fly in, grab it, get out.
+export function spawnVault(state) {
+  const rng = state.rng;
+  const p = state.player;
+  let x = WORLD_W / 2, y = WORLD_H / 2;
+  for (let tries = 0; tries < 12; tries++) {
+    x = 120 + rng() * (WORLD_W - 240);
+    y = 140 + rng() * (WORLD_H - 280);
+    if (!p || Math.hypot(x - p.x, y - p.y) > 240) break;
+  }
+  state.shards.push({
+    x, y, vx: 0, vy: 0, r: 18, phase: rng() * Math.PI * 2,
+    born: state.time, vault: true,
+  });
+  for (let i = 0; i < 3; i++) {
+    const a = (i / 3) * Math.PI * 2 + rng() * 0.6;
+    state.mines.push({
+      x: x + Math.cos(a) * 78, y: y + Math.sin(a) * 78,
+      r: 15, vx: 0, vy: 0, hp: 1, heavy: false,
+      rot: rng() * Math.PI * 2, spin: pickRng(rng, -1, 1), pulse: rng() * Math.PI * 2,
+    });
+  }
+}
+
+export function spawnHunter(state) {
+  const rng = state.rng;
+  const edge = pickInt(rng, 0, 3);
+  const m = 30;
+  let x, y;
+  if (edge === 0) { x = -m; y = rng() * WORLD_H; }
+  else if (edge === 1) { x = WORLD_W + m; y = rng() * WORLD_H; }
+  else if (edge === 2) { x = rng() * WORLD_W; y = -m; }
+  else { x = rng() * WORLD_W; y = WORLD_H + m; }
+  state.hunters.push(createHunter(state, x, y));
+}
+
 export function spawnPickup(state, kind) {
   const rng = state.rng;
   state.pickups.push({
@@ -145,6 +183,7 @@ export function updateWorld(state, dt, audio) {
     state.waveTimer = 0;
     state.wave += 1;
     for (let i = 0; i < 5; i++) spawnShard(state);
+    spawnVault(state);
     if (state.wave % 3 === 0) {
       state.stormWarnTimer = 2.0;
       showMessage(state, 'COMET STORM INCOMING', 2.0);
@@ -170,6 +209,16 @@ export function updateWorld(state, dt, audio) {
   if (state.spawnClock <= 0) {
     if (state.shards.length < 12) spawnShard(state);
     state.spawnClock = 1.6;
+  }
+
+  // Hunter drip: from wave 2, seekers join the hunt, a few at a time.
+  if (state.wave >= 2) {
+    state.hunterClock -= dt;
+    if (state.hunterClock <= 0) {
+      const cap = Math.min(1 + Math.floor(state.wave / 2), 4);
+      if (state.hunters.length < cap) spawnHunter(state);
+      state.hunterClock = Math.max(8, 16 - state.wave);
+    }
   }
 
   // Storm warning counts down, then the storm runs its course.

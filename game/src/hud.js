@@ -3,6 +3,7 @@
 
 import { WORLD_W, WORLD_H, COMBO_WINDOW } from './state.js';
 import { drawShard, drawMine, drawComet, drawPickup, drawBolt } from './enemies.js';
+import { drawHunter } from './hunter.js';
 import { drawPlayer } from './player.js';
 
 function drawBackdrop(ctx, state) {
@@ -68,6 +69,7 @@ export function drawWorld(ctx, state) {
   for (const s of state.shards) drawShard(ctx, s, state.time);
   for (const pk of state.pickups) drawPickup(ctx, pk);
   for (const m of state.mines) drawMine(ctx, m, state.time);
+  for (const h of state.hunters) drawHunter(ctx, h, state.time);
   for (const c of state.comets) drawComet(ctx, c);
   for (const b of state.bolts) drawBolt(ctx, b);
   drawPlayer(ctx, state);
@@ -137,11 +139,21 @@ export function drawHud(ctx, state) {
     ctx.font = 'bold 15px system-ui, sans-serif';
     ctx.fillText('OVERDRIVE ' + state.player.overdrive.toFixed(1) + 's', WORLD_W - 20, 76);
   }
+  if (state.player && state.player.magnet > 0) {
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#a78bfa';
+    ctx.font = 'bold 15px system-ui, sans-serif';
+    const my = state.player.overdrive > 0 ? 96 : 76;
+    ctx.fillText('MAGNET ' + state.player.magnet.toFixed(1) + 's', WORLD_W - 20, my);
+  }
   if (state.player && state.player.shield) {
     ctx.textAlign = 'right';
     ctx.fillStyle = '#2dd4bf';
     ctx.font = 'bold 15px system-ui, sans-serif';
-    ctx.fillText('SHIELD READY', WORLD_W - 20, state.player.overdrive > 0 ? 96 : 76);
+    let sy = 76;
+    if (state.player.overdrive > 0) sy += 20;
+    if (state.player.magnet > 0) sy += 20;
+    ctx.fillText('SHIELD READY', WORLD_W - 20, sy);
   }
   // Storm banner.
   if (state.storm) {
@@ -190,7 +202,7 @@ export function drawTitle(ctx, state) {
   ctx.fillStyle = '#cbd5e1';
   ctx.font = '17px system-ui, sans-serif';
   ctx.fillText('Pilot a salvage skiff through the drifting field. Sweep up star-shards,', WORLD_W / 2, 348);
-  ctx.fillText('chain them into combos, blast the mines, and outrun the comet storms.', WORLD_W / 2, 372);
+  ctx.fillText('chain them into combos, crack the vaults, dodge the seekers — and outrun the storms.', WORLD_W / 2, 372);
   ctx.fillStyle = '#e0e7ff';
   ctx.font = 'bold 16px system-ui, sans-serif';
   ctx.fillText('WASD / ARROWS — fly      MOUSE — aim      CLICK / SPACE — fire', WORLD_W / 2, 420);

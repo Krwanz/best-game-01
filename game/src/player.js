@@ -21,6 +21,7 @@ export function createPlayer() {
     invuln: 0,
     shield: false,
     overdrive: 0,
+    magnet: 0,
     thrusting: false,
   };
 }
@@ -35,6 +36,7 @@ export function resetPlayer(player) {
   player.invuln = 2;
   player.shield = false;
   player.overdrive = 0;
+  player.magnet = 0;
 }
 
 export function updatePlayer(state, input, dt, audio, spawnParticles) {
@@ -72,6 +74,7 @@ export function updatePlayer(state, input, dt, audio, spawnParticles) {
 
   if (p.invuln > 0) p.invuln -= dt;
   if (p.overdrive > 0) p.overdrive -= dt;
+  if (p.magnet > 0) p.magnet -= dt;
 
   // Fire: click, hold, or Space. Overdrive doubles the fire rate.
   p.fireClock -= dt;
@@ -124,6 +127,9 @@ export function applyPickup(state, kind, audio) {
   } else if (kind === 'overdrive') {
     p.overdrive = 8;
     showMessage(state, 'OVERDRIVE!', 1.4);
+  } else if (kind === 'magnet') {
+    p.magnet = 8;
+    showMessage(state, 'MAGNET!', 1.4);
   }
   audio.powerup();
 }

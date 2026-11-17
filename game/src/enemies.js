@@ -2,10 +2,11 @@
 // collisions: bolts vs mines, the skiff vs shards, mines, comets and
 // asteroids, and pickups.
 
-import { WORLD_W, WORLD_H, addCombo, addScore, shardValue, showMessage } from './state.js';
+import { WORLD_W, WORLD_H, addCombo, addScore, shardValue, showMessage, COMBO_MAX } from './state.js';
 import { dist2 } from './util.js';
 import { hitPlayer, applyPickup } from './player.js';
 import { spawnPickup } from './world.js';
+import { updateHunters } from './hunter.js';
 
 function removeAt(list, i) {
   list.splice(i, 1);
@@ -22,8 +23,16 @@ export function updateEnemies(state, dt, audio, spawnParticles, addText, onGameO
       removeAt(state.bolts, i);
     }
   }
-  // Shards drift and shimmer.
+  // Hunters steer toward the skiff.
+  updateHunters(state, dt);
+  // Shards drift and shimmer — and a magnet pickup reels them in.
+  const pl = state.player;
   for (const s of state.shards) {
+    if (pl && pl.magnet > 0 && !s.vault) {
+      const d = Math.hypot(pl.x - s.x, pl.y - s.y) || 1;
+      s.vx += ((pl.x - s.x) / d) * 320 * dt;
+      s.vy += ((pl.y - s.y) / d) * 320 * dt;
+    }
     s.x += s.vx * dt;
     s.y += s.vy * dt;
     s.phase += dt * 3;
@@ -84,8 +93,35 @@ export function updateEnemies(state, dt, audio, spawnParticles, addText, onGameO
           removeAt(state.mines, j);
           // One in eight mines drops a pickup.
           if (state.rng() < 0.12) {
-            spawnPickup(state, state.rng() < 0.5 ? 'shield' : 'overdrive');
+            const roll = state.rng();
+            spawnPickup(state, roll < 0.34 ? 'shield' : roll < 0.67 ? 'overdrive' : 'magnet');
           }
+        }
+        break;
+      }
+    }
+    if (spent) removeAt(state.bolts, i);
+  }
+
+  // Bolts vs hunters: two hits to kill, worth 200.
+  for (let i = state.bolts.length - 1; i >= 0; i--) {
+    const b = state.bolts[i];
+    let spent = false;
+    for (let j = state.hunters.length - 1; j >= 0; j--) {
+      const h = state.hunters[j];
+      const rr = h.r + b.r;
+      if (dist2(b.x, b.y, h.x, h.y) < rr * rr) {
+        spent = true;
+        h.hp -= 1;
+        spawnParticles('spark', b.x, b.y, 0, 0, '#fca5a5');
+        if (h.hp <= 0) {
+          addScore(state, 200);
+          addText(h.x, h.y, '+200', '#fca5a5');
+          audio.explosion(false);
+          spawnParticles('burst', h.x, h.y, 0, 0, '#ef4444');
+          spawnParticles('burst', h.x, h.y, 0, 0, '#f97316');
+          state.shake = Math.max(state.shake, 8);
+          removeAt(state.hunters, j);
         }
         break;
       }
@@ -98,12 +134,23 @@ export function updateEnemies(state, dt, audio, spawnParticles, addText, onGameO
     const s = state.shards[i];
     const rr = s.r + p.r + 6;
     if (dist2(s.x, s.y, p.x, p.y) < rr * rr) {
-      const value = shardValue(state);
+      const wasMax = state.combo >= COMBO_MAX;
+      const value = s.vault ? 500 : shardValue(state);
       addCombo(state);
       addScore(state, value);
-      addText(s.x, s.y - 10, '+' + value + (state.combo > 1 ? ' x' + state.combo : ''), '#ffb347');
+      addText(s.x, s.y - 10, '+' + value + (s.vault ? ' VAULT' : '') + (state.combo > 1 ? ' x' + state.combo : ''), s.vault ? '#fde68a' : '#ffb347');
       audio.pickup(state.combo);
-      spawnParticles('spark', s.x, s.y, 0, 0, '#ffb347');
+      spawnParticles('spark', s.x, s.y, 0, 0, s.vault ? '#fde68a' : '#ffb347');
+      if (s.vault) {
+        spawnParticles('burst', s.x, s.y, 0, 0, '#fbbf24');
+        showMessage(state, 'VAULT CRACKED  +500', 1.8);
+      }
+      // First time the chain tops out, pay a bonus and say so.
+      if (!wasMax && state.combo >= COMBO_MAX) {
+        addScore(state, 250);
+        showMessage(state, 'MAX COMBO!  +250', 1.8);
+        spawnParticles('burst', p.x, p.y, 0, 0, '#ffb347');
+      }
       removeAt(state.shards, i);
     }
   }
@@ -116,6 +163,21 @@ export function updateEnemies(state, dt, audio, spawnParticles, addText, onGameO
       removeAt(state.mines, i);
       audio.explosion(true);
       spawnParticles('burst', m.x, m.y, 0, 0, '#ff6b6b');
+      if (hitPlayer(state, audio, spawnParticles) === 'dead') {
+        onGameOver();
+        return;
+      }
+    }
+  }
+
+  // Skiff vs hunters: a seeker ramming the hull costs a life like a mine.
+  for (let i = state.hunters.length - 1; i >= 0; i--) {
+    const h = state.hunters[i];
+    const rr = h.r + p.r - 2;
+    if (dist2(h.x, h.y, p.x, p.y) < rr * rr) {
+      removeAt(state.hunters, i);
+      audio.explosion(true);
+      spawnParticles('burst', h.x, h.y, 0, 0, '#ef4444');
       if (hitPlayer(state, audio, spawnParticles) === 'dead') {
         onGameOver();
         return;
@@ -170,6 +232,15 @@ export function drawShard(ctx, s, time) {
   const glow = 0.75 + Math.sin(s.phase) * 0.25;
   ctx.save();
   ctx.translate(s.x, s.y);
+  // A vault shard wears a gold ring so the prize reads from across the field.
+  if (s.vault) {
+    ctx.strokeStyle = 'rgba(253, 230, 138, 0.9)';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(0, 0, 24 + Math.sin(s.phase * 2) * 2, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.scale(1.5, 1.5);
+  }
   ctx.rotate(Math.sin(s.phase * 0.5) * 0.3);
   ctx.globalAlpha = glow;
   ctx.shadowColor = '#ffb347';
@@ -256,7 +327,7 @@ export function drawPickup(ctx, pk) {
   ctx.translate(0, bob);
   ctx.shadowColor = '#2dd4bf';
   ctx.shadowBlur = 12;
-  ctx.fillStyle = pk.kind === 'shield' ? '#0d9488' : '#db2777';
+  ctx.fillStyle = pk.kind === 'shield' ? '#0d9488' : pk.kind === 'magnet' ? '#7c3aed' : '#db2777';
   ctx.beginPath();
   ctx.arc(0, 0, pk.r, 0, Math.PI * 2);
   ctx.fill();
@@ -268,7 +339,7 @@ export function drawPickup(ctx, pk) {
   ctx.font = 'bold 13px system-ui, sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(pk.kind === 'shield' ? 'S' : 'O', 0, 1);
+  ctx.fillText(pk.kind === 'shield' ? 'S' : pk.kind === 'magnet' ? 'M' : 'O', 0, 1);
   ctx.restore();
 }
 

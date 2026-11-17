@@ -36,6 +36,7 @@ export function createState(seed) {
     bolts: [],
     shards: [],
     mines: [],
+    hunters: [],
     asteroids: [],
     comets: [],
     pickups: [],
@@ -46,6 +47,7 @@ export function createState(seed) {
     // Tuning that the wave director changes
     spawnClock: 0,
     mineClock: 0,
+    hunterClock: 0,
     over: false,
     overScore: 0,
     newBest: false,

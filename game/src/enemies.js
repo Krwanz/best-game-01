@@ -5,7 +5,7 @@
 import { WORLD_W, WORLD_H, addCombo, addScore, shardValue, showMessage, COMBO_MAX } from './state.js';
 import { dist2 } from './util.js';
 import { hitPlayer, applyPickup } from './player.js';
-import { spawnPickup } from './world.js';
+import { spawnPickup, spawnMiniMine } from './world.js';
 import { updateHunters } from './hunter.js';
 
 function removeAt(list, i) {
@@ -82,7 +82,7 @@ export function updateEnemies(state, dt, audio, spawnParticles, addText, onGameO
         m.hp -= 1;
         spawnParticles('spark', b.x, b.y, 0, 0, '#fde68a');
         if (m.hp <= 0) {
-          const pts = m.heavy ? 250 : 100;
+          const pts = m.heavy ? 250 : m.splitter ? 150 : m.mini ? 50 : 100;
           addScore(state, pts);
           state.minesDestroyed += 1;
           addText(m.x, m.y, '+' + pts, '#fde68a');
@@ -91,8 +91,18 @@ export function updateEnemies(state, dt, audio, spawnParticles, addText, onGameO
           spawnParticles('burst', m.x, m.y, 0, 0, '#f59e0b');
           state.shake = Math.max(state.shake, m.heavy ? 10 : 6);
           removeAt(state.mines, j);
-          // One in eight mines drops a pickup.
-          if (state.rng() < 0.12) {
+          // A cracked splitter bursts into two fast mini-mines instead of
+          // dying quietly — clear them too, or the field fills up.
+          if (m.splitter) {
+            const a = Math.atan2(m.vy, m.vx) || 0;
+            spawnMiniMine(state, m.x, m.y, a + 0.9);
+            spawnMiniMine(state, m.x, m.y, a - 0.9);
+            addText(m.x, m.y - 18, 'SPLIT!', '#c084fc');
+            spawnParticles('burst', m.x, m.y, 0, 0, '#a855f7');
+          }
+          // One in eight mines drops a pickup — never a mini-mine, or the
+          // field would rain pickups every time a splitter bursts.
+          if (!m.mini && state.rng() < 0.12) {
             const roll = state.rng();
             spawnPickup(state, roll < 0.28 ? 'shield' : roll < 0.52 ? 'overdrive' : roll < 0.76 ? 'magnet' : 'nova');
           }
@@ -225,7 +235,8 @@ export function updateEnemies(state, dt, audio, spawnParticles, addText, onGameO
         for (let j = state.mines.length - 1; j >= 0; j--) {
           const m = state.mines[j];
           spawnParticles('burst', m.x, m.y, 0, 0, '#f59e0b');
-          addScore(state, m.heavy ? 250 : 100);
+          // A nova detonates splitters outright — no splitting, just points.
+          addScore(state, m.heavy ? 250 : m.splitter ? 150 : m.mini ? 50 : 100);
           state.minesDestroyed += 1;
           removeAt(state.mines, j);
           cleared++;
@@ -319,11 +330,22 @@ export function drawMine(ctx, m, time) {
   ctx.strokeStyle = '#ef4444';
   ctx.lineWidth = 1.5;
   ctx.stroke();
-  // Hot core: brighter as it pulses, and redder when heavy.
-  ctx.fillStyle = m.heavy ? '#dc2626' : `rgba(239, 68, 68, ${0.5 + pulse * 0.5})`;
+  // Hot core: brighter as it pulses, and redder when heavy. A splitter
+  // wears a violet core and a dashed ring, so it reads as a new threat
+  // from across the field; minis keep the plain red core, just smaller.
+  ctx.fillStyle = m.splitter ? '#a855f7' : m.heavy ? '#dc2626' : `rgba(239, 68, 68, ${0.5 + pulse * 0.5})`;
   ctx.beginPath();
   ctx.arc(0, 0, m.heavy ? 7 : 5, 0, Math.PI * 2);
   ctx.fill();
+  if (m.splitter) {
+    ctx.strokeStyle = 'rgba(192, 132, 252, 0.9)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 5]);
+    ctx.beginPath();
+    ctx.arc(0, 0, m.r + 6 + Math.sin(m.pulse) * 1.5, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
   ctx.restore();
 }
 

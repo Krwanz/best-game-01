@@ -206,8 +206,8 @@ export function drawTitle(ctx, state) {
   ctx.fillStyle = '#cbd5e1';
   ctx.font = '17px system-ui, sans-serif';
   ctx.fillText('Pilot a salvage skiff through the drifting field. Sweep up star-shards,', WORLD_W / 2, 348);
-  ctx.fillText('chain them into combos, crack the vaults, dodge the seekers — and ride out', WORLD_W / 2, 372);
-  ctx.fillText('comet storms, mine surges and shard showers, wave after wave.', WORLD_W / 2, 396);
+  ctx.fillText('chain them into combos, crack the vaults, split fission mines, dodge the seekers —', WORLD_W / 2, 372);
+  ctx.fillText('and ride out comet storms, mine surges and shard showers, wave after wave.', WORLD_W / 2, 396);
   ctx.fillStyle = '#e0e7ff';
   ctx.font = 'bold 16px system-ui, sans-serif';
   ctx.fillText('WASD / ARROWS — fly      MOUSE — aim      CLICK / SPACE — fire', WORLD_W / 2, 420);

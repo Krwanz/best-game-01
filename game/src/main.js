@@ -212,6 +212,8 @@ function arrangeShot(kind) {
     spawnPickup(state, 'shield');
     // A nova pickup, placed where it reads in the frame.
     state.pickups.push({ x: 920, y: 200, vx: 0, vy: 0, r: 14, kind: 'nova', phase: 0 });
+    // A splitter mine, parked where its violet ring reads in the frame.
+    state.mines.push({ x: 880, y: 150, vx: -25, vy: 15, r: 18, hp: 2, heavy: false, splitter: true, mini: false, rot: 0, spin: 0.5, pulse: 0 });
     spawnVault(state);
     state.hunters.push(createHunter(state, 1000, 120));
     // A few seconds of live play so bolts and particles are mid-flight.
@@ -288,6 +290,9 @@ window.__salvage = {
   spawnShard: (x, y) => spawnShard(state, x, y),
   spawnMine: (x, y) => {
     state.mines.push({ x, y, r: 15, vx: 0, vy: 0, hp: 1, heavy: false, rot: 0, spin: 0.5, pulse: 0 });
+  },
+  spawnSplitter: (x, y) => {
+    state.mines.push({ x, y, r: 18, vx: 0, vy: 0, hp: 2, heavy: false, splitter: true, mini: false, rot: 0, spin: 0.5, pulse: 0 });
   },
   triggerStorm: () => {
     state.storm = true;

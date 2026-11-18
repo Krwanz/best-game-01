@@ -73,7 +73,7 @@ export function spawnShard(state, x, y) {
   });
 }
 
-export function spawnMine(state, heavy) {
+export function spawnMine(state, heavy, splitter) {
   const rng = state.rng;
   const edge = pickInt(rng, 0, 3);
   let x, y;
@@ -85,15 +85,35 @@ export function spawnMine(state, heavy) {
   const tx = WORLD_W / 2 + pickRng(rng, -260, 260);
   const ty = WORLD_H / 2 + pickRng(rng, -180, 180);
   const a = Math.atan2(ty - y, tx - x);
-  const speed = heavy ? pickRng(rng, 34, 52) : pickRng(rng, 52, 92);
+  // A splitter (fission mine) is big, slow and tough — two hits to crack,
+  // and it bursts into two fast mini-mines instead of dying quietly.
+  const speed = splitter ? pickRng(rng, 34, 52) : heavy ? pickRng(rng, 34, 52) : pickRng(rng, 52, 92);
   state.mines.push({
-    x, y, r: heavy ? 22 : 15,
+    x, y, r: splitter ? 18 : heavy ? 22 : 15,
     vx: Math.cos(a) * speed,
     vy: Math.sin(a) * speed,
-    hp: heavy ? 3 : 1,
+    hp: splitter ? 2 : heavy ? 3 : 1,
     heavy: !!heavy,
+    splitter: !!splitter,
+    mini: false,
     rot: rng() * Math.PI * 2,
     spin: pickRng(rng, -1.2, 1.2),
+    pulse: rng() * Math.PI * 2,
+  });
+}
+
+// A mini-mine: the fast fragment a splitter bursts into. Small, fragile,
+// worth 50 — and it never splits again or drops a pickup.
+export function spawnMiniMine(state, x, y, angle) {
+  const rng = state.rng;
+  const speed = pickRng(rng, 120, 170);
+  state.mines.push({
+    x, y, r: 9,
+    vx: Math.cos(angle) * speed,
+    vy: Math.sin(angle) * speed,
+    hp: 1, heavy: false, splitter: false, mini: true,
+    rot: rng() * Math.PI * 2,
+    spin: pickRng(rng, -2, 2),
     pulse: rng() * Math.PI * 2,
   });
 }
@@ -192,8 +212,9 @@ export function updateWorld(state, dt, audio) {
       audio.storm();
     } else if (state.wave % 3 === 1) {
       // Mine surge: a wall of mines floods in at once — shoot or weave.
+      // Two of them are splitters, so the surge keeps biting after the first volley.
       state.waveType = 'MINE SURGE';
-      for (let i = 0; i < 8; i++) spawnMine(state, state.rng() < 0.2);
+      for (let i = 0; i < 8; i++) spawnMine(state, i < 2 ? false : state.rng() < 0.2, i < 2);
       showMessage(state, 'MINE SURGE!', 1.8);
       audio.waveClear();
     } else {
@@ -205,12 +226,14 @@ export function updateWorld(state, dt, audio) {
     }
   }
 
-  // Mine drip: faster as waves climb.
+  // Mine drip: faster as waves climb. From wave 3, one drip in seven is a
+  // splitter — the field keeps growing teeth.
   state.mineClock -= dt;
   if (state.mineClock <= 0) {
     const cap = Math.min(4 + state.wave, 14);
     if (state.mines.length < cap) {
-      spawnMine(state, state.rng() < Math.min(0.1 + state.wave * 0.02, 0.35));
+      const split = state.wave >= 3 && state.rng() < 0.15;
+      spawnMine(state, split ? false : state.rng() < Math.min(0.1 + state.wave * 0.02, 0.35), split);
     }
     state.mineClock = Math.max(0.7, 2.4 - state.wave * 0.14);
   }

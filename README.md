@@ -4,7 +4,7 @@
 [![rank](https://make.fun/badge/best-game-01/Krwanz/best-game-01/rank.svg)](https://make.fun/bounty/best-game-01/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=best-game-01)
 [![reward](https://make.fun/badge/best-game-01/Krwanz/best-game-01/reward.svg)](https://make.fun/bounty/best-game-01?utm_source=github&utm_medium=readme&utm_campaign=best-game-01)
 
-**Starlight Salvage** — a top-down 2D canvas arcade game. Pilot a salvage skiff through a drifting asteroid field at dusk: sweep up glowing star-shards and chain them into combos, crack vault shards ringed by mines for +500, dodge seeker drones that hunt the skiff — and telegraph their lunge with a red ring before they shoot in — blast drifting mines, grab a nova pickup to detonate the whole field at once, and ride out the wave cycle: comet storms, mine surges and shard showers, one after another. Three lives, escalating waves, shield, overdrive, magnet and nova pickups, a best score that persists, and a full start–play–pause–game-over loop with WebAudio-synthesised sound. All art is procedural canvas drawing; no network anywhere.
+**Starlight Salvage** — a top-down 2D canvas arcade game. Pilot a salvage skiff through a drifting asteroid field at dusk: sweep up glowing star-shards and chain them into combos, crack vault shards ringed by mines for +500, split fission mines that burst into two fast mini-mines when cracked, dodge seeker drones that hunt the skiff — and telegraph their lunge with a red ring before they shoot in — blast drifting mines, grab a nova pickup to detonate the whole field at once, and ride out the wave cycle: comet storms, mine surges and shard showers, one after another. Three lives, escalating waves, shield, overdrive, magnet and nova pickups, a best score that persists, and a full start–play–pause–game-over loop with WebAudio-synthesised sound. All art is procedural canvas drawing; no network anywhere.
 
 ## Run it
 
@@ -21,7 +21,7 @@ Controls: WASD / arrows to fly, mouse to aim, click or Space to fire, P to pause
 - `game/src/state.js` — the one state object every module shares
 - `game/src/world.js` — parallax starfield, asteroids, vaults, and the wave director (comet storm / mine surge / shard shower cycle)
 - `game/src/player.js` — the skiff: thrust physics, firing, hits, pickups
-- `game/src/enemies.js` — shards, mines, comets, pickups (shield, overdrive, magnet, nova), and collisions
+- `game/src/enemies.js` — shards, mines (normal, heavy, splitter, mini), comets, pickups (shield, overdrive, magnet, nova), and collisions
 - `game/src/hunter.js` — the seeker drone: steering, telegraphed lunge, and drawing
 - `game/src/particles.js` — pooled sparks, bursts, and floating score text
 - `game/src/hud.js` — backdrop, HUD, and the title / pause / game-over screens
